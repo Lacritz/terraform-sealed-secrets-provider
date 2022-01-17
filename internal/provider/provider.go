@@ -10,11 +10,6 @@ import (
 func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"public_key": {
-				Type:        schema.TypeString,
-				Optional:    false,
-				Description: "The public key of the sealed-secret-controller.",
-			},
 			"controller_name": {
 				Type:        schema.TypeString,
 				Optional:    true,
@@ -26,6 +21,11 @@ func Provider() *schema.Provider {
 				Optional:    true,
 				Description: "The namespace the controller is running in.",
 				Default:     "kube-system",
+			},
+			"pem": {
+				Type:        schema.TypeString,
+				Required:    true,
+				Description: "The content of the pem file of the sealed-secret-controller.",
 			},
 		},
 		ConfigureContextFunc: configureProvider,
@@ -44,7 +44,7 @@ type Config struct {
 func configureProvider(_ context.Context, rd *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	cName := rd.Get("controller_name").(string)
 	cNs := rd.Get("controller_namespace").(string)
-	pk := []byte(rd.Get("public_key").(string))
+	pk := []byte(rd.Get("pem").(string))
 
 	return &Config{
 		ControllerName:      cName,
