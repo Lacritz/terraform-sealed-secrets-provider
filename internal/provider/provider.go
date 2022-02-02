@@ -29,7 +29,7 @@ func Provider() *schema.Provider {
 			},
 		},
 		ConfigureContextFunc: configureProvider,
-		ResourcesMap: map[string]*schema.Resource{
+		DataSourcesMap: map[string]*schema.Resource{
 			"sealed_secret": resourceLocal(),
 		},
 	}
@@ -52,4 +52,3 @@ func configureProvider(_ context.Context, rd *schema.ResourceData) (interface{},
 		PublicKeyResolver:   kubeseal.ResolvePK(pk),
 	}, nil
 }
-

@@ -15,14 +15,8 @@ import (
 
 func resourceLocal() *schema.Resource {
 	return &schema.Resource{
-		Description:   "Creates a sealed secret and stores it in yaml_content.",
-		ReadContext:   resourceLocalRead,
-		UpdateContext: resourceLocalRead,
-		CreateContext: resourceLocalCreate,
-		DeleteContext: func(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-			d.SetId("")
-			return nil
-		},
+		Description: "Creates a sealed secret and stores it in yaml_content.",
+		ReadContext: resourceLocalRead,
 		Schema: map[string]*schema.Schema{
 			"name": {
 				Type:        schema.TypeString,
@@ -61,27 +55,7 @@ func resourceLocal() *schema.Resource {
 	}
 }
 
-// resourceLocalRead creates only a hash of the public key.
-// If the hash changes then the resource is forced recreated.
 func resourceLocalRead(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
-	provider := meta.(*Config)
-	pk, err := provider.PublicKeyResolver(ctx)
-	if err != nil {
-		return diag.FromErr(err)
-	}
-	d.SetId(d.Get("name").(string))
-	d.Set("data", d.Get("data").(map[string]interface{}))
-
-	newPkHash := hashPublicKey(pk)
-	if oldPkHash, ok := d.GetOk("public_key_hash"); ok && oldPkHash.(string) != newPkHash {
-		d.SetId("")
-	}
-	d.Set("public_key_hash", newPkHash)
-
-	return nil
-}
-
-func resourceLocalCreate(ctx context.Context, d *schema.ResourceData, meta interface{}) diag.Diagnostics {
 	provider := meta.(*Config)
 	name := d.Get("name").(string)
 
