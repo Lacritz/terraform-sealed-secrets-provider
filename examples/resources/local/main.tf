@@ -13,7 +13,7 @@ provider "sealedsecret" {
   pem                  = "weathuawetl...awethiawe"
 }
 
-resource "sealed_secret" "example" {
+data "sealed_secret" "example" {
   name      = "example-secret"
   namespace = "default"
   data      = {
@@ -23,5 +23,5 @@ resource "sealed_secret" "example" {
 
 resource "local_file" "example" {
   filename = "sealed-secret.yaml"
-  content  = sealed_secret.example.yaml_content
+  content  = data.sealed_secret.example.yaml_content
 }

@@ -28,7 +28,7 @@ func resourceLocal() *schema.Resource {
 				Required:    true,
 				Description: "Namespace of the secret.",
 			},
-			"type": {
+			"secret_type": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "Opaque",
@@ -87,7 +87,7 @@ func createK8sSecret(d *schema.ResourceData) (v1.Secret, error) {
 	rawSecret := k8s.SecretManifest{
 		Name:      d.Get("name").(string),
 		Namespace: d.Get("namespace").(string),
-		Type:      d.Get("type").(string),
+		Type:      d.Get("secret_type").(string),
 	}
 	if dataRaw, ok := d.GetOk("data"); ok {
 		rawSecret.Data = dataRaw.(map[string]interface{})
