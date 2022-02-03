@@ -2,8 +2,6 @@ package provider
 
 import (
 	"context"
-	"crypto/rsa"
-	"crypto/sha1"
 	"fmt"
 	"github.com/datalbry/sealedsecret/internal/k8s"
 	"github.com/datalbry/sealedsecret/internal/kubeseal"
@@ -28,7 +26,7 @@ func resourceLocal() *schema.Resource {
 				Required:    true,
 				Description: "Namespace of the secret.",
 			},
-			"secret_type": {
+			"type": {
 				Type:        schema.TypeString,
 				Optional:    true,
 				Default:     "Opaque",
@@ -38,18 +36,18 @@ func resourceLocal() *schema.Resource {
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Sensitive:   true,
-				Description: "Key/value pairs to populate the secret. The value will be base64 encoded",
+				Description: "Key/value pairs to populate the secret.",
+			},
+			"binary_data": {
+				Type:        schema.TypeMap,
+				Optional:    true,
+				Sensitive:   true,
+				Description: "Base64 encoded key/value pairs to populate the secret.",
 			},
 			"yaml_content": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				Description: "The produced sealed secret yaml file.",
-			},
-			"public_key_hash": {
-				Type:        schema.TypeString,
-				Computed:    true,
-				ForceNew:    true,
-				Description: "The public key hashed to detect if the public key changes.",
 			},
 		},
 	}
@@ -76,9 +74,18 @@ func resourceLocalRead(ctx context.Context, d *schema.ResourceData, meta interfa
 	logDebug("Successfully created sealed secret " + name)
 
 	d.SetId(name)
-	d.Set("data", d.Get("data").(map[string]interface{}))
-	d.Set("yaml_content", string(sealedSecret))
-	d.Set("public_key_hash", hashPublicKey(pk))
+	err = d.Set("data", d.Get("data").(map[string]interface{}))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = d.Set("binary_data", d.Get("binary_data").(map[string]interface{}))
+	if err != nil {
+		return diag.FromErr(err)
+	}
+	err = d.Set("yaml_content", string(sealedSecret))
+	if err != nil {
+		return diag.FromErr(err)
+	}
 
 	return nil
 }
@@ -87,19 +94,34 @@ func createK8sSecret(d *schema.ResourceData) (v1.Secret, error) {
 	rawSecret := k8s.SecretManifest{
 		Name:      d.Get("name").(string),
 		Namespace: d.Get("namespace").(string),
-		Type:      d.Get("secret_type").(string),
+		Type:      d.Get("type").(string),
 	}
 	if dataRaw, ok := d.GetOk("data"); ok {
-		rawSecret.Data = dataRaw.(map[string]interface{})
+		rawSecret.Data = mapValuesToBytes(dataRaw.(map[string]interface{}))
+	}
+	if binaryDataRaw, ok := d.GetOk("binary_data"); ok {
+		rawSecret.BinaryData = mapValuesToString(binaryDataRaw.(map[string]interface{}))
 	}
 
 	return k8s.CreateSecret(&rawSecret)
 }
 
-func hashPublicKey(pk *rsa.PublicKey) string {
-	return fmt.Sprintf("%x", sha1.Sum([]byte(fmt.Sprintf("%v%v", pk.N, pk.E))))
-}
-
 func logDebug(s string) {
 	log.Printf("[DEBUG] %s", s)
+}
+
+func mapValuesToBytes(data map[string]interface{}) map[string][]byte {
+	result := make(map[string][]byte)
+	for key, value := range data {
+		result[key] = []byte(fmt.Sprintf("%v", value))
+	}
+	return result
+}
+
+func mapValuesToString(data map[string]interface{}) map[string]string {
+	result := make(map[string]string)
+	for key, value := range data {
+		result[key] = fmt.Sprintf("%v", value)
+	}
+	return result
 }

@@ -18,7 +18,7 @@ func TestCreateSecret(t *testing.T) {
 				Name:      "name_aaa",
 				Namespace: "ns_aaa",
 				Type:      "type_aaa",
-				Data:      map[string]interface{}{secretKey: secretValue},
+				Data:      map[string][]byte{secretKey: []byte(secretValue)},
 			},
 			ExpectedDataValue: secretValue,
 		},
